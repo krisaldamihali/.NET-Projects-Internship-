@@ -1,0 +1,37 @@
+﻿@model ProductManagement.Models.Product
+
+@{
+    ViewData["Title"] = "Product Details";
+}
+
+<div class="card mb-3" style="max-width: 900px;">
+    <div class="row g-0">
+        <div class="col-md-5 d-flex align-items-center">
+            <img src="@Model.ImageUrl" class="img-fluid rounded-start p-3" alt="@Model.Name" style="max-height: 350px; object-fit: contain;" />
+        </div>
+        <div class="col-md-7">
+            <div class="card-body">
+                <h2 class="card-title">@Model.Name</h2>
+                <h5 class="card-subtitle mb-2 text-muted">@Model.Category</h5>
+                <p class="card-text mt-3">@Model.Description</p>
+
+                <h4 class="text-success mb-3">Price: ₹@Model.Price.ToString("N2")</h4>
+
+                <p>
+                    @if (Model.StockQuantity > 0)
+                    {
+                        <span class="badge bg-success fs-6">@Model.StockQuantity in stock</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger fs-6">Out of stock</span>
+                    }
+                </p>
+
+                <p class="text-muted">Added on: @Model.CreatedDate.ToString("dd MMM yyyy")</p>
+
+                <a asp-action="Index" class="btn btn-secondary mt-3">Back to Catalog</a>
+            </div>
+        </div>
+    </div>
+</div>

@@ -6,12 +6,12 @@ namespace CreditSimulatorAPI.Models
     public class LoanRequest
     {
         [Required]
-        public decimal Principal { get; set; }      // Loan amount
+        public decimal Principal { get; set; }      
 
         [Required]
-        public DateTime MaturityDate { get; set; } // Loan maturity date
+        public DateTime MaturityDate { get; set; } 
 
         [Required]
-        public double AnnualInterestRate { get; set; } // Annual interest rate in %
+        public double AnnualInterestRate { get; set; } 
     }
 }

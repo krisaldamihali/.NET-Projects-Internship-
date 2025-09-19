@@ -39,13 +39,21 @@ namespace CreditSimulatorAPI.Migrations
                     b.Property<decimal>("InterestRate")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime>("MaturityDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal>("RemainingBalance")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Loans");
                 });
@@ -61,17 +69,55 @@ namespace CreditSimulatorAPI.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal>("InterestPortion")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("LoanId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("PaymentDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal>("PrincipalPortion")
+                        .HasColumnType("decimal(18,2)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("LoanId");
 
                     b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("CreditSimulatorAPI.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("CreditSimulatorAPI.Models.Loan", b =>
+                {
+                    b.HasOne("CreditSimulatorAPI.Models.User", "User")
+                        .WithMany("Loans")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("CreditSimulatorAPI.Models.Payment", b =>
@@ -88,6 +134,11 @@ namespace CreditSimulatorAPI.Migrations
             modelBuilder.Entity("CreditSimulatorAPI.Models.Loan", b =>
                 {
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("CreditSimulatorAPI.Models.User", b =>
+                {
+                    b.Navigation("Loans");
                 });
 #pragma warning restore 612, 618
         }

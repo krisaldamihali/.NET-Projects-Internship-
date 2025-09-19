@@ -2,6 +2,7 @@
 using CreditSimulatorAPI.Models;
 using CreditSimulatorAPI.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CreditSimulatorAPI.Controllers
 {
@@ -9,46 +10,43 @@ namespace CreditSimulatorAPI.Controllers
     [Route("api/[controller]")]
     public class LoanSimulatorController : ControllerBase
     {
-        private readonly LoanCalculatorService _calculator;
+        private readonly LoanCalculatorService _calc;
         private readonly CreditDbContext _context;
 
         public LoanSimulatorController(CreditDbContext context)
         {
-            _calculator = new LoanCalculatorService();
+            _calc = new LoanCalculatorService();
             _context = context;
         }
 
+        // POST: api/loansimulate/simulate
         [HttpPost("simulate")]
-        public IActionResult SimulateLoan([FromBody] LoanRequest loanRequest)
+        public IActionResult SimulateLoan([FromBody] LoanRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // 1. Llogaritjet përmes shërbimit ekzistues
-            decimal monthlyPayment = _calculator.CalculateMonthlyPayment(loanRequest);
-            List<PaymentScheduleItem> schedule = _calculator.GeneratePaymentSchedule(loanRequest);
+            int durationMonths = Math.Max(1,
+                (request.MaturityDate.Year - DateTime.Now.Year) * 12 +
+                (request.MaturityDate.Month - DateTime.Now.Month));
 
-            // 2. Llogarit kohëzgjatjen (në muaj) nga MaturityDate
-            int durationMonths = ((loanRequest.MaturityDate.Year - DateTime.Now.Year) * 12) +
-                                 (loanRequest.MaturityDate.Month - DateTime.Now.Month);
+            decimal monthlyPayment = _calc.CalculateMonthlyPayment(request.Principal, request.AnnualInterestRate, durationMonths);
+            var schedule = _calc.BuildSchedule(request.Principal, request.AnnualInterestRate, durationMonths, DateTime.Now);
 
-            if (durationMonths <= 0)
-                return BadRequest("Maturity date must be in the future.");
-
-            // 3. Ruaj Loan në DB
             var loan = new Loan
             {
-                UserId = 1, // për momentin hardcoded, mund të vijë nga LoanRequest më vonë
-                Amount = loanRequest.Principal,
-                InterestRate = (decimal)loanRequest.AnnualInterestRate,
+                UserId = request.UserId,
+                Amount = request.Principal,
+                InterestRate = (decimal)request.AnnualInterestRate,
                 DurationMonths = durationMonths,
-                RemainingBalance = loanRequest.Principal
+                StartDate = DateTime.Now,
+                MaturityDate = request.MaturityDate,
+                RemainingBalance = request.Principal
             };
 
             _context.Loans.Add(loan);
             _context.SaveChanges();
 
-            // 4. Kthe rezultatet
             return Ok(new
             {
                 LoanId = loan.Id,
@@ -56,6 +54,56 @@ namespace CreditSimulatorAPI.Controllers
                 PaymentSchedule = schedule,
                 RemainingBalance = loan.RemainingBalance
             });
+        }
+
+        // GET: api/loansimulate
+        [HttpGet]
+        public IActionResult GetAllLoans()
+        {
+            var loans = _context.Loans
+                .Include(l => l.User) 
+                .Select(l => new
+                {
+                    l.Id,
+                    l.UserId,
+                    UserName = l.User.FullName,
+                    l.Amount,
+                    l.InterestRate,
+                    l.DurationMonths,
+                    l.StartDate,
+                    l.MaturityDate,
+                    l.RemainingBalance
+                })
+                .ToList();
+
+            return Ok(loans);
+        }
+
+        // GET: api/loansimulate/{id}
+        [HttpGet("{id}")]
+        public IActionResult GetLoanById(int id)
+        {
+            var loan = _context.Loans
+                .Include(l => l.User)
+                .Where(l => l.Id == id)
+                .Select(l => new
+                {
+                    l.Id,
+                    l.UserId,
+                    UserName = l.User.FullName,
+                    l.Amount,
+                    l.InterestRate,
+                    l.DurationMonths,
+                    l.StartDate,
+                    l.MaturityDate,
+                    l.RemainingBalance
+                })
+                .FirstOrDefault();
+
+            if (loan == null)
+                return NotFound();
+
+            return Ok(loan);
         }
     }
 }

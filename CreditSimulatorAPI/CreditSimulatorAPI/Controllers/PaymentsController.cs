@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using CreditSimulatorAPI.Data;
+﻿using CreditSimulatorAPI.Data;
 using CreditSimulatorAPI.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CreditSimulatorAPI.Controllers
 {
@@ -16,21 +16,29 @@ namespace CreditSimulatorAPI.Controllers
             _context = context;
         }
 
-        // Regjistrimi i pagesës
         [HttpPost("register")]
         public async Task<IActionResult> RegisterPayment(int loanId, decimal amount)
         {
-            var loan = await _context.Loans.FindAsync(loanId);
+            var loan = await _context.Loans.Include(l => l.Payments).FirstOrDefaultAsync(l => l.Id == loanId);
             if (loan == null) return NotFound("Loan not found.");
+
+            if (loan.RemainingBalance <= 0) return BadRequest("Loan already fully paid.");
+
+            decimal interestPortion = loan.RemainingBalance * (loan.InterestRate / 100 / 12);
+            decimal principalPortion = amount - interestPortion;
+            if (principalPortion < 0) principalPortion = 0;
+
+            loan.RemainingBalance -= principalPortion;
+            if (loan.RemainingBalance < 0) loan.RemainingBalance = 0;
 
             var payment = new Payment
             {
                 LoanId = loanId,
                 Amount = amount,
-                PaymentDate = DateTime.Now
+                PaymentDate = DateTime.Now,
+                InterestPortion = interestPortion,
+                PrincipalPortion = principalPortion
             };
-
-            loan.RemainingBalance -= amount;
 
             _context.Payments.Add(payment);
             _context.Loans.Update(loan);
@@ -39,7 +47,6 @@ namespace CreditSimulatorAPI.Controllers
             return Ok(new { message = "Payment registered successfully", balance = loan.RemainingBalance });
         }
 
-        // Shfaqja e balances së mbetur
         [HttpGet("balance/{loanId}")]
         public async Task<IActionResult> GetBalance(int loanId)
         {

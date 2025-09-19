@@ -1,6 +1,5 @@
 ﻿using CreditSimulatorAPI.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 
 namespace CreditSimulatorAPI.Data
 {
@@ -8,6 +7,7 @@ namespace CreditSimulatorAPI.Data
     {
         public CreditDbContext(DbContextOptions<CreditDbContext> options) : base(options) { }
 
+        public DbSet<User> Users { get; set; }
         public DbSet<Loan> Loans { get; set; }
         public DbSet<Payment> Payments { get; set; }
     }

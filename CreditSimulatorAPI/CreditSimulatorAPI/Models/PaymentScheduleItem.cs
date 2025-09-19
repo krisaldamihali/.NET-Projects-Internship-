@@ -1,10 +1,9 @@
-﻿using System;
-
-namespace CreditSimulatorAPI.Models
+﻿namespace CreditSimulatorAPI.Models
 {
     public class PaymentScheduleItem
     {
         public int MonthNumber { get; set; }
+        public DateTime DueDate { get; set; }
         public decimal PrincipalPayment { get; set; }
         public decimal InterestPayment { get; set; }
         public decimal TotalPayment { get; set; }

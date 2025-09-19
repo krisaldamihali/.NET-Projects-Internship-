@@ -1,50 +1,53 @@
 ﻿using CreditSimulatorAPI.Models;
-using System;
-using System.Collections.Generic;
 
 namespace CreditSimulatorAPI.Services
 {
     public class LoanCalculatorService
     {
-        public List<PaymentScheduleItem> GeneratePaymentSchedule(LoanRequest loan)
+        public decimal CalculateMonthlyPayment(decimal principal, double annualRate, int termMonths)
+        {
+            if (termMonths <= 0) return 0;
+            double monthlyRate = annualRate / 100.0 / 12.0;
+
+            if (monthlyRate == 0)
+                return Math.Round(principal / termMonths, 2);
+
+            double p = (double)principal;
+            double pow = Math.Pow(1 + monthlyRate, termMonths);
+            double monthly = p * monthlyRate * pow / (pow - 1);
+
+            return Math.Round((decimal)monthly, 2);
+        }
+
+        public List<PaymentScheduleItem> BuildSchedule(decimal principal, double annualRate, int termMonths, DateTime startDate)
         {
             var schedule = new List<PaymentScheduleItem>();
+            decimal monthlyPayment = CalculateMonthlyPayment(principal, annualRate, termMonths);
+            decimal remaining = principal;
+            double monthlyRate = annualRate / 100.0 / 12.0;
 
-            int totalMonths = ((loan.MaturityDate.Year - DateTime.Now.Year) * 12) + loan.MaturityDate.Month - DateTime.Now.Month;
-            if (totalMonths <= 0) totalMonths = 1;
-
-            decimal monthlyInterestRate = (decimal)(loan.AnnualInterestRate / 100 / 12);
-            decimal monthlyPayment = loan.Principal * monthlyInterestRate / (1 - (decimal)Math.Pow((double)(1 + monthlyInterestRate), -totalMonths));
-
-            decimal remainingBalance = loan.Principal;
-
-            for (int month = 1; month <= totalMonths; month++)
+            for (int m = 1; m <= termMonths; m++)
             {
-                decimal interestPayment = remainingBalance * monthlyInterestRate;
-                decimal principalPayment = monthlyPayment - interestPayment;
-                remainingBalance -= principalPayment;
+                decimal interest = Math.Round(remaining * (decimal)monthlyRate, 2);
+                decimal principalPortion = monthlyPayment - interest;
+                if (m == termMonths) // korrigjo rrumbullakosjen
+                {
+                    principalPortion = remaining;
+                    monthlyPayment = principalPortion + interest;
+                }
+                remaining = Math.Round(remaining - principalPortion, 2);
 
                 schedule.Add(new PaymentScheduleItem
                 {
-                    MonthNumber = month,
-                    PrincipalPayment = Math.Round(principalPayment, 2),
-                    InterestPayment = Math.Round(interestPayment, 2),
-                    TotalPayment = Math.Round(monthlyPayment, 2),
-                    RemainingBalance = Math.Round(Math.Max(remainingBalance, 0), 2)
+                    MonthNumber = m,
+                    DueDate = startDate.AddMonths(m),
+                    PrincipalPayment = principalPortion,
+                    InterestPayment = interest,
+                    TotalPayment = monthlyPayment,
+                    RemainingBalance = Math.Max(remaining, 0)
                 });
             }
-
             return schedule;
-        }
-
-        public decimal CalculateMonthlyPayment(LoanRequest loan)
-        {
-            int totalMonths = ((loan.MaturityDate.Year - DateTime.Now.Year) * 12) + loan.MaturityDate.Month - DateTime.Now.Month;
-            if (totalMonths <= 0) totalMonths = 1;
-
-            decimal monthlyInterestRate = (decimal)(loan.AnnualInterestRate / 100 / 12);
-            decimal monthlyPayment = loan.Principal * monthlyInterestRate / (1 - (decimal)Math.Pow((double)(1 + monthlyInterestRate), -totalMonths));
-            return Math.Round(monthlyPayment, 2);
         }
     }
 }

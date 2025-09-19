@@ -14,6 +14,5 @@ namespace CreditSimulatorAPI.Models
         public double AnnualInterestRate { get; set; }
 
         [Required]
-        public int UserId { get; set; } // i lidhur me tabelën User
-    }
+        public int UserId { get; set; } 
 }

@@ -30,7 +30,7 @@ namespace CreditSimulatorAPI.Services
             {
                 decimal interest = Math.Round(remaining * (decimal)monthlyRate, 2);
                 decimal principalPortion = monthlyPayment - interest;
-                if (m == termMonths) // korrigjo rrumbullakosjen
+                if (m == termMonths) // korrigjon rrumbullakosjen
                 {
                     principalPortion = remaining;
                     monthlyPayment = principalPortion + interest;
